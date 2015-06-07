@@ -1,20 +1,32 @@
+var Promise = require('bluebird');
 var express = require('express');
 var net = require('net');
+var fs = require('fs');
 var browserSync = require('browser-sync').create();
 var stylus = require('stylus');
-var Promise = require('bluebird');
-var app = express();
-var server;
-var fs = require('fs');
 var colors = require('colors');
 var babel = require('babel-core');
 var eslint = require('eslint').linter;
+
+var app = express();
+var server;
 
 
 /* Routes
 -----------------------------------------------------------------------------*/
 app.get('/', (req, res) => {
   res.render('index', (err, html) => {
+    if (err) {
+      jadeError(err);
+      return res.status(500).send();
+    }
+    res.send(html);
+  });
+});
+
+app.get('*.html', (req, res) => {
+  var match = req.url.match(/\/(.*).html$/);
+  res.render(match[1], (err, html) => {
     if (err) {
       jadeError(err);
       return res.status(500).send();
@@ -87,6 +99,7 @@ function getPort(port) {
 function compileJS(req, res, next) {
   var match = req.url.match(/.*\.js$/);
   if (match) {
+    if (match[0].match(/bower_components/)) return next();
     var filename = './client' + match[0];
     fs.readFile(filename, 'utf8', function (err, jsFile) {
       if (err) return res.status(404).send();
